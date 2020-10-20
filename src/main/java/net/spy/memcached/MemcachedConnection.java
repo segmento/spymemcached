@@ -279,17 +279,29 @@ public class MemcachedConnection extends SpyThread {
     wakeupDelay = Integer.parseInt( System.getProperty("net.spy.wakeupDelay",
       Integer.toString(DEFAULT_WAKEUP_DELAY)));
 
-    List<MemcachedNode> connections = createConnections(a);
-    locator = f.createLocator(connections);
+    try {
+      List<MemcachedNode> connections = createConnections(a);
+      locator = f.createLocator(connections);
 
-    metrics = f.getMetricCollector();
-    metricType = f.enableMetrics();
+      metrics = f.getMetricCollector();
+      metricType = f.enableMetrics();
 
-    registerMetrics();
+      registerMetrics();
 
-    setName("Memcached IO over " + this);
-    setDaemon(f.isDaemon());
-    start();
+      setName("Memcached IO over " + this);
+      setDaemon(f.isDaemon());
+      start();
+    } catch (IOException e) {
+      getLogger().warn("MemcachedConnection constructor failed. Close selector.");
+
+      try {
+        selector.close();
+      } catch (IOException e2) {
+        getLogger().warn("Failed to close selector");
+      }
+
+      throw e;
+    }
   }
 
   /**
